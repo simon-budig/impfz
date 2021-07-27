@@ -5,6 +5,7 @@ import sys, pprint
 import base45
 import zlib
 import cbor
+import cose.messages
 
 import json
 import base64
@@ -43,6 +44,7 @@ if __name__ == '__main__':
          continue
 
       cb = cbor.loads (raw_data)
+      co = cose.messages.Sign1Message.decode (raw_data)
 
       protected   = cbor.loads (cb.value[0])
       unprotected = cb.value[1]
@@ -61,6 +63,11 @@ if __name__ == '__main__':
       load_certificates ()
 
       raw_cert = base64.b64decode (certificates [key_id]["rawData"])
-
       cert = OpenSSL.crypto.load_certificate (OpenSSL.crypto.FILETYPE_ASN1, raw_cert)
-      print (OpenSSL.crypto.dump_certificate (OpenSSL.crypto.FILETYPE_TEXT, cert).decode ('utf-8'))
+      pubnums = cert.get_pubkey().to_cryptography_key().public_numbers()
+      key = cose.keys.ec2.EC2Key (cose.keys.curves.P256,
+                                  x = pubnums.x.to_bytes (32, 'big'),
+                                  y = pubnums.y.to_bytes (32, 'big'))
+      co.key = key
+      print ("Verified:", co.verify_signature())
+      print ()
