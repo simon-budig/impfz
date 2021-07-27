@@ -6,6 +6,7 @@ import base45
 import zlib
 import cbor
 import cose.messages
+import cose.headers
 
 import json
 import base64
@@ -43,16 +44,10 @@ if __name__ == '__main__':
          print (f"{name} does not contain zlib encoded data", file=sys.stderr)
          continue
 
-      cb = cbor.loads (raw_data)
       co = cose.messages.Sign1Message.decode (raw_data)
 
-      protected   = cbor.loads (cb.value[0])
-      unprotected = cb.value[1]
-      payload_cb  = cb.value[2]
-      signature   = cb.value[3]
-
-      key_id = unprotected[4]
-      payload = cbor.loads (payload_cb)
+      key_id = co.get_attr(cose.headers.KID)
+      payload = cbor.loads (co.payload)
 
       print ("key-id:", key_id.hex())
       print ("ci:", payload[-260][1]["v"][0]["ci"])
