@@ -10,7 +10,7 @@ import cose.headers
 
 import json
 import base64
-import OpenSSL
+import cryptography
 
 certificates = {}
 
@@ -26,6 +26,8 @@ def load_certificates (filename="dsc-list.json"):
 
 
 if __name__ == '__main__':
+   load_certificates ()
+
    for name in sys.argv[1:]:
       b54_data = open (name).read ()
       if b54_data[:4] != "HC1:":
@@ -48,21 +50,28 @@ if __name__ == '__main__':
 
       key_id = co.get_attr(cose.headers.KID)
       payload = cbor.loads (co.payload)
+      raw_cert = base64.b64decode (certificates [key_id]["rawData"])
+      cert = cryptography.x509.load_der_x509_certificate (raw_cert)
 
       print ("key-id:", key_id.hex())
+      print ("Cert-Subject:", cert.subject)
       print ("ci:", payload[-260][1]["v"][0]["ci"])
       print ("Name:", payload[-260][1]["nam"]["fn"])
       print ("Vorname:", payload[-260][1]["nam"]["gn"])
       print ("Geburtstag:", payload[-260][1]["dob"])
 
-      load_certificates ()
-
-      raw_cert = base64.b64decode (certificates [key_id]["rawData"])
-      cert = OpenSSL.crypto.load_certificate (OpenSSL.crypto.FILETYPE_ASN1, raw_cert)
-      pubnums = cert.get_pubkey().to_cryptography_key().public_numbers()
+      pubnums = cert.public_key().public_numbers()
       key = cose.keys.ec2.EC2Key (cose.keys.curves.P256,
                                   x = pubnums.x.to_bytes (32, 'big'),
                                   y = pubnums.y.to_bytes (32, 'big'))
       co.key = key
       print ("Verified:", co.verify_signature())
       print ()
+
+   if len (sys.argv) < 2:
+      for key_id in certificates:
+         raw_cert = base64.b64decode (certificates [key_id]["rawData"])
+         cert = cryptography.x509.load_der_x509_certificate (raw_cert)
+         print ("key-id:", key_id.hex())
+         print ("Cert-Subject:", cert.subject)
+         print ()
