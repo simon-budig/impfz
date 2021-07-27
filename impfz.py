@@ -19,12 +19,15 @@ def load_certificates (filename="dsc-list.json"):
    global certificates
 
    if not os.path.exists (filename):
-      urllib.request.urlretrieve ("https://de.dscg.ubirch.com/trustList/DSC/", filename)
+      urllib.request.urlretrieve ("https://de.dscg.ubirch.com/trustList/DSC/",
+                                  filename)
 
    infile = open (filename)
 
-   discard = infile.readline ()   # not sure what this base64 encoded data is supposed to be
-   cdata = infile.read()
+   # first line contains signature data, we don't use it
+   discard = infile.readline ()
+
+   cdata = infile.read ()
    certs = json.loads (cdata)["certificates"]
    for c in certs:
       certificates [base64.b64decode (c["kid"])] = c
@@ -36,24 +39,27 @@ if __name__ == '__main__':
    for name in sys.argv[1:]:
       b54_data = open (name).read ()
       if b54_data[:4] != "HC1:":
-         print (f"{name} is not a valid certificate scan", file=sys.stderr)
+         print (f"{name} is not a valid certificate scan",
+                file=sys.stderr)
          continue
 
       try:
          z_data = base45.b45decode (b54_data[4:])
       except ValueError:
-         print (f"{name} does not contain base45 encoded data", file=sys.stderr)
+         print (f"{name} does not contain base45 encoded data",
+                file=sys.stderr)
          continue
 
       try:
          raw_data = zlib.decompress (z_data)
       except zlib.error:
-         print (f"{name} does not contain zlib encoded data", file=sys.stderr)
+         print (f"{name} does not contain zlib encoded data",
+                file=sys.stderr)
          continue
 
       co = cose.messages.Sign1Message.decode (raw_data)
 
-      key_id = co.get_attr(cose.headers.KID)
+      key_id = co.get_attr (cose.headers.KID)
       payload = cbor.loads (co.payload)
       raw_cert = base64.b64decode (certificates [key_id]["rawData"])
       cert = cryptography.x509.load_der_x509_certificate (raw_cert)
