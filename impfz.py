@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import sys, pprint
+import sys, os
+import urllib.request
 
 import base45
 import zlib
@@ -17,7 +18,11 @@ certificates = {}
 def load_certificates (filename="dsc-list.json"):
    global certificates
 
+   if not os.path.exists (filename):
+      urllib.request.urlretrieve ("https://de.dscg.ubirch.com/trustList/DSC/", filename)
+
    infile = open (filename)
+
    discard = infile.readline ()   # not sure what this base64 encoded data is supposed to be
    cdata = infile.read()
    certs = json.loads (cdata)["certificates"]
