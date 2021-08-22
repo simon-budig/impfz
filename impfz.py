@@ -37,14 +37,14 @@ if __name__ == '__main__':
    load_certificates ()
 
    for name in sys.argv[1:]:
-      b54_data = open (name).read ()
-      if b54_data[:4] != "HC1:":
+      b45_data = open (name).read ()
+      if b45_data[:4] != "HC1:":
          print (f"{name} is not a valid certificate scan",
                 file=sys.stderr)
          continue
 
       try:
-         z_data = base45.b45decode (b54_data[4:])
+         z_data = base45.b45decode (b45_data[4:])
       except ValueError:
          print (f"{name} does not contain base45 encoded data",
                 file=sys.stderr)
